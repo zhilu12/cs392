@@ -6,7 +6,7 @@ fn main() {
     assert!(is_close(d, 2.0_f64.sqrt()));
 
 
-
+    println!(nth_prime(22));
     // Problem 2
 
 
@@ -21,6 +21,24 @@ fn is_close(num1: f64, num2: f64) -> bool {
 }
 
 fn nth_prime(n: u32) -> u32 {
+
+    //brute force
+    let mut count = 1;
+    if n = 0 {
+        2
+    }
+    else {
+        while count < n {
+            let i = 0;
+            while i < count {
+                
+                count += 1;
+            }
+        }
+    }
+
+    // sieving primes
+    
 
 
     
