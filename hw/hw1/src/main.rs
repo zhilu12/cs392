@@ -1,6 +1,6 @@
 fn main() {
     // Problem 1
-    let d = distance(5.0, 5.0, 4.0, 4.0);
+    let d = distance_point((5.0, 5.0), (4.0, 4.0));
     println!("Distance = {}", d);
 
     assert!(is_close(d, 2.0_f64.sqrt()));
@@ -14,8 +14,8 @@ fn main() {
     assert!(true == is_taxicab(1729));
 }
 
-fn distance(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
-    ((x2 - x1).powf(2.0) + (y2 - y1).powf(2.0)).sqrt()
+fn distance(point1: (f64, f64), point2: (f64, f64)) -> f64 {
+    ((point2.0 - point1.0).powf(2.0) + (point2.1 - point1.1).powf(2.0)).sqrt()
 }
 
 fn is_close(num1: f64, num2: f64) -> bool {
@@ -34,11 +34,12 @@ fn nth_prime(mut n: u32) -> u32 {
     }
 
     i - 1
-    // sieving primes
+
+    // sieving primes maybe later
 }
 
 // Checks if the given number is prime
-fn isPrime(num: u32) -> bool {
+fn is_prime(num: u32) -> bool {
     // cases for 1, 2, and 3
     if num <= 1 {
         return false;
