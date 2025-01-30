@@ -1,6 +1,6 @@
 fn main() {
     // Problem 1
-    let d = distance_point((5.0, 5.0), (4.0, 4.0));
+    let d = distance((5.0, 5.0), (4.0, 4.0));
     println!("Distance = {}", d);
 
     assert!(is_close(d, 2.0_f64.sqrt()));
