@@ -1,11 +1,20 @@
 use std::io;
 
 fn main() {
-    let mut input = String::new();
+    // use split
+    let del = ">>>>>>>>>>>>>>>>>>>>";
+    let mut del_exists: bool = false;
 
-    io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line");
+    let lines = io::stdin().lines();
+    for line in lines {
+        let mut line = line.unwrap();
+        if line.contains(del) {
+            del_exists = !del_exists;
+            continue;
+        }
 
-    let input: u32 = input.trim().parse().expect("Please type a number!");
+        if !del_exists {
+            println!("{}", line);
+        }
+    }
 }
