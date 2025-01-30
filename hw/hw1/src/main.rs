@@ -5,15 +5,17 @@ fn main() {
 
     assert!(is_close(d, 2.0_f64.sqrt()));
 
-
-    println!("{}", nth_prime(22));
     // Problem 2
+    println!("22nd prime is {}", nth_prime(22));
+    assert!(83 == nth_prime(22));
 
-
+    // Problem 3
+    println!("1729 is a taxicab number: {}", is_taxicab(1729));
+    assert!(true == is_taxicab(1729));
 }
 
 fn distance(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
-    ((x2-x1).powf(2.0) + (y2-y1).powf(2.0)).sqrt()
+    ((x2 - x1).powf(2.0) + (y2 - y1).powf(2.0)).sqrt()
 }
 
 fn is_close(num1: f64, num2: f64) -> bool {
@@ -33,7 +35,6 @@ fn nth_prime(mut n: u32) -> u32 {
 
     i - 1
     // sieving primes
-    
 }
 
 // Checks if the given number is prime
@@ -60,11 +61,28 @@ fn isPrime(num: u32) -> bool {
     }
     true
 }
+
 /*
-fn is_taxicab(n: u32) -> bool {
 
+given a nonnegative integer n of type u32, determines if it can be
+represented as the sum of a pair of positive cubes is more than one way.
 
-
-
-}
 */
+fn is_taxicab(n: u32) -> bool {
+    let mut count = 0;
+
+    let max = (n as f64).cbrt() as u32;
+
+    for i in 0..=max {
+        for j in i..=max {
+            if (i.pow(3) + j.pow(3)) == n {
+                count += 1;
+                if count > 1 {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
