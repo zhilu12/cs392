@@ -2,7 +2,7 @@ fn main() {
     println!("Hello, world!");
 }
 
-fn mail_search(email: &str) -> bool {
+fn condition(email: &str) -> bool {
     false
 }
 
@@ -12,7 +12,7 @@ fn email_from_str(mbox: &str) -> String {
     // will need to implement going over emails in mbox and checking for From-line
 
     for email in mbox {
-        if mail_search(email) {
+        if condition(email) {
             email
         }
         else {
