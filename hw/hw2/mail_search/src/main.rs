@@ -10,22 +10,28 @@ fn email_from_str(mbox: &str) -> String {
     let mut email = String::new();
 
     // will need to implement going over emails in mbox and checking for From-line
+    // iterate over each line, creating the email based on if From-line exists
 
-    for email in mbox {
-        if condition(email) {
-            email
+    for line in mbox.lines() {
+        if line.starts_with("From") {
+            if condition(&email) {
+                email
+            } else {
+                email = "";
+                email.push_str(line);
+            }
         }
-        else {
-            panic
-        }
+        email.push_str(line);
+    }
+    if !condition(email) {
+        panic
     }
 }
 
 fn revert_from_munge(line: &str) -> &str {
     if line.starts_with(">From") {
         &line[1..]
-    }
-    else {
+    } else {
         line
     }
 }
@@ -41,8 +47,4 @@ fn get_email_read_to_string(filename: &str) -> String {
 fn get_email_bufread_lines(filename: &str) -> String {
     let file = File::open(filename);
     let mut buf_reader = BufReader::new(file);
-   
-
-
-
 }
