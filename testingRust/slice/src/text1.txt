@@ -1,0 +1,18 @@
+EXAM
+
+Question 1. Write a function in python which squares its input.
+>>>>>>>>>>>>>>>>>>>>
+Solution.
+
+def square(n):
+    return n * n
+>>>>>>>>>>>>>>>>>>>>
+
+Question 2.  Show that 1 + 1 = 2.
+>>>>>>>>>>>>>>>>>>>>
+Solution.
+
+I'm not sure, this one seems tricky...ask Russell.
+
+
+END OF EXAM

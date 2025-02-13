@@ -74,12 +74,19 @@ impl Config {
                 self.stack.push(n);
             }
             Command::Drop => {
-                self.stack.pop();
+                if stack.len() > 0{
+                    self.stack.pop();
+                } else {
+                    Err("No elements on the stack")
+                }
             }
             Command::Swap => {
-
                 let len = stack.len();
-                self.stack.swap(len-2, len-1)
+                if len > 2 {
+                    self.stack.swap(len - 2, len -1)
+                } else {
+                    Err("Less than two elements on the stack")
+                }
             }
             Command::Print => {
                 if let Some(top) = stack.pop() {
@@ -98,12 +105,30 @@ impl Config {
                 }
             }
             Command::Add => {
-                if let some(n),
+                // type checking for intergers?
+                // Won't work for 2 elements if one of them is an operation
+                if stack.len() > 2 {
+                    let n = stack.pop();
+                    let m = stack.pop();
+                    stack.push(n + m);
+                } else {
+                    Err("Less than two elements on the stack")
+                }
             }
-            Sub,
-            Mul,
-            Div,
-            Mod,
+            Command::Sub => {
+                if stack.len() > 2 {
+
+                }
+            }
+            Command::Mul => {
+
+            }
+            Command::Div {
+
+            }
+            Command::Mod {
+
+            }
         }
     }
 }
