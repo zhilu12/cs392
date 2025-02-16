@@ -25,7 +25,6 @@ fn main() {
 
         // split line into elements by whitespace
         let words: Vec<&str> = entry.split_whitespace().collect();
-        let mut error_occurred = false;
         for word in words {
             // if a word is bye, exit
             if word == "bye" {
