@@ -153,3 +153,46 @@ impl Monoid<Add> for String {
         "".to_string()
     }
 }
+
+ 
+
+// Functor Traits
+trait FunctorTypes {
+    type Inner;
+    type Outer<T>;
+}
+
+// Example for Option
+impl<T> FunctorTypes for Option<T> {
+    type Inner = T;
+    type Outer<S> = Option<S>;
+}
+
+trait Functor: FunctorTypes {
+    fn fmap<T>(self, f: impl Fn(Self::Inner) -> T) -> Self::Outer<T>;
+
+    fn funzip<T, S>(self, f: impl Fn(Self::Inner) -> (T, S)) -> (Self::Outer<T>, Self::Outer<S>);
+}
+
+// Example for Option
+impl<S> Functor for Option<S> {
+    fn fmap<T>(self, f: impl Fn(S) -> T) -> Option<T> {
+        match self {
+            None => None,
+            Some(x) => Some(f(x)),
+        }
+    }
+}
+
+impl<S, T> Functor for Option<(S, T)> {
+    fn funzip<A, B>(self, f: impl Fn((S, T)) -> (A, B)) -> (Option<A>, Option<B>) {
+        match self {
+            None => (None, None),
+            Some(x) => {
+                let a = x.fmap(|p| f(p));
+                let b = x.fmap(|p| f(p));
+                (Some(a), Some(b))
+            }
+        }
+    }
+}
