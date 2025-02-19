@@ -6,6 +6,7 @@ fn main() {
 mod tests {
     use super::*;
 
+    // Semigroup and Monoid Tests
     #[test]
     fn mconcat_semi_add_i32() {
         let expected = <i32 as Semigroup<Add>>::mconcat(10, vec![1, 2, 3, 4, 5].into_iter());
@@ -17,7 +18,7 @@ mod tests {
         let expected = <i32 as Semigroup<Mul>>::mconcat(10, vec![1, 2, 3, 4, 5].into_iter());
         assert_eq!(expected, 1200)
     }
-    /*
+    
     #[test]
     fn mconcat_mon_add_i32() {
         let expected = <i32 as Monoid<Add>>::mconcat(vec![1, 2, 3, 4, 5].into_iter());
@@ -49,7 +50,28 @@ mod tests {
         let actual = String::from("abcdefghi");
         assert_eq!(expected, actual)
     }
-     */
+
+
+    // Functor Tests
+    #[test]
+    fn option_fmap() {
+        let expected = Some(100).fmap(|x| x + 1);
+        assert_eq!(expected, Some(101));
+    }
+
+    #[test]
+    fn option_funzip() {
+        let expected =  Some((vec![1, 2, 3], 4)).funzip();
+        assert_eq!(expected.0, Some(vec![1, 2, 3]));
+        assert_eq!(expected.1, Some(4))
+    }
+
+    #[test]
+    fn option_functor_none() {
+        let none : Option<(i32, i32)> = None;
+        assert_eq!(none.fmap(|p| p.0 + p.1), None);
+        assert_eq!(none.funzip(), (None, None))
+    }
 }
 
 // Traits
@@ -72,21 +94,19 @@ where
     }
 }
 
-/*
+
 trait Monoid<O>: Semigroup<O>
 where
     O: BinOp<Self>,
     Self: Sized,
 {
+    fn identity() -> Self;
+
     fn mconcat<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut out = 0;
-        for item in iter {
-            out = O::op(out, item)
-        }
-        out
+        <Self as Semigroup<O>>::mconcat(Self::identity(), iter)
     }
 }
-     */
+     
 
 // Binop Implementations
 struct Add;
@@ -104,11 +124,32 @@ impl BinOp<i32> for Mul {
     }
 }
 
+impl BinOp<String> for Add {
+    fn op(lhs: String, rhs: String) -> String {
+        let mut res = String::from(lhs);
+        res.push_str(&rhs);
+        res
+    }
+}
+
 // Semigroup
 impl Semigroup<Add> for i32 {}
 impl Semigroup<Mul> for i32 {}
+impl Semigroup<Add> for String {}
 
-/*/ Monoid
-impl Monoid<Add> for i32 {}
-impl Monoid<Mul> for i32 {}
-*/
+// Monoid
+impl Monoid<Add> for i32 {
+    fn identity() -> Self {
+        0
+    }
+}
+impl Monoid<Mul> for i32 {
+    fn identity() -> Self {
+        1
+    }
+}
+impl Monoid<Add> for String {
+    fn identity() -> Self {
+        "".to_string()
+    }
+}
