@@ -18,7 +18,7 @@ mod tests {
         let expected = <i32 as Semigroup<Mul>>::mconcat(10, vec![1, 2, 3, 4, 5].into_iter());
         assert_eq!(expected, 1200)
     }
-    
+
     #[test]
     fn mconcat_mon_add_i32() {
         let expected = <i32 as Monoid<Add>>::mconcat(vec![1, 2, 3, 4, 5].into_iter());
@@ -51,7 +51,6 @@ mod tests {
         assert_eq!(expected, actual)
     }
 
-
     // Functor Tests
     #[test]
     fn option_fmap() {
@@ -59,21 +58,19 @@ mod tests {
         assert_eq!(expected, Some(101));
     }
 
-    
     #[test]
     fn option_funzip() {
-        let expected =  Some((vec![1, 2, 3], 4)).funzip();
+        let expected = Some((vec![1, 2, 3], 4)).funzip();
         assert_eq!(expected.0, Some(vec![1, 2, 3]));
         assert_eq!(expected.1, Some(4))
     }
-    /*
+
     #[test]
     fn option_functor_none() {
-        let none : Option<(i32, i32)> = None;
+        let none: Option<(i32, i32)> = None;
         assert_eq!(none.fmap(|p| p.0 + p.1), None);
         assert_eq!(none.funzip(), (None, None))
     }
-    */
 }
 
 // Traits
@@ -96,7 +93,6 @@ where
     }
 }
 
-
 trait Monoid<O>: Semigroup<O>
 where
     O: BinOp<Self>,
@@ -108,7 +104,6 @@ where
         <Self as Semigroup<O>>::mconcat(Self::identity(), iter)
     }
 }
-     
 
 // Binop Implementations
 struct Add;
@@ -156,8 +151,6 @@ impl Monoid<Add> for String {
     }
 }
 
- 
-
 // Functor Traits
 trait FunctorTypes {
     type Inner;
@@ -175,8 +168,8 @@ trait Functor: FunctorTypes {
 
     fn funzip<A, B>(self) -> (Self::Outer<A>, Self::Outer<B>)
     where
-        Self: Clone,                      
-        Self::Inner: Clone + Into<(A, B)> 
+        Self: Clone,
+        Self::Inner: Clone + Into<(A, B)>,
     {
         (
             self.clone().fmap(|p| {
@@ -201,3 +194,20 @@ impl<S> Functor for Option<S> {
     }
 }
 
+trait Applicative: Functor {
+    fn pure(x: Self::Inner) -> Self;
+    fn app<T, U>(self, ax: Self::Outer<T>) -> Self::Outer<U>
+    where
+        T: Clone,
+        Self::Inner: Fn(T) -> U;
+}
+
+impl <S> Applicative for Option<S> {
+    fn pure(self, f: impl Fn(S)) -> Self [
+
+    ]
+
+    fn app<T, U>()
+
+
+}
