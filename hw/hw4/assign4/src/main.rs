@@ -71,6 +71,22 @@ mod tests {
         assert_eq!(none.fmap(|p| p.0 + p.1), None);
         assert_eq!(none.funzip(), (None, None))
     }
+
+    // Applicative Tests
+    #[test]
+    fn option_pure() {
+        assert_eq!(Option::pure(vec![1, 2, 3]), Some(vec![1, 2, 3]))
+    }
+
+    #[test]
+    fn option_app() {
+        let mut f = Some(|x| x + 1);
+        assert_eq!(f.app(Some(10)), Some(11));
+        assert_eq!(f.app(None), None);
+        f = None;
+        assert_eq!(f.app(Some(10)), None);
+        assert_eq!(f.app(None), None);
+    }
 }
 
 // Traits
@@ -202,12 +218,43 @@ trait Applicative: Functor {
         Self::Inner: Fn(T) -> U;
 }
 
-impl <S> Applicative for Option<S> {
-    fn pure(self, f: impl Fn(S)) -> Self [
+impl<S> Applicative for Option<S> {
+    fn pure(x: Self::Inner) -> Self {
+        Some(x)
+    }
 
-    ]
-
-    fn app<T, U>()
-
-
+    fn app<T, U>(self, ax: Self::Outer<T>) -> Self::Outer<U>
+    where
+        T: Clone,
+        Self::Inner: Fn(T) -> U,
+    {
+        match (self, ax) {
+            (Some(f), Some(x)) => Some(f(x)),
+            _ => None
+        }
+    }
 }
+
+#[derive(Clone, PartialEq, Debug)]
+struct VVec<T>(Vec<T>);
+
+
+
+
+
+impl<T> BinOp<VVec<T>> for Add {
+    fn op(lhs)
+}
+
+impl Semigroup<Add> for VVec<T> {}
+impl Monoid<Add> for VVec<T> {}
+
+
+
+impl<T> Functor for VVec<T> {}
+
+// fmap and funzip
+
+impl<T> Applicative for VVec<T> {}
+
+// pure and app
