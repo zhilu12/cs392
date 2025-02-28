@@ -239,17 +239,23 @@ impl<S> Applicative for Option<S> {
 struct VVec<T>(Vec<T>);
 
 
-
-
-
+// Need to implement Vec concatentation
 impl<T> BinOp<VVec<T>> for Add {
-    fn op(lhs)
+    fn op(lhs:, rhs:) -> VVect<T> {
+
+    }
 }
 
-impl Semigroup<Add> for VVec<T> {}
-impl Monoid<Add> for VVec<T> {}
+impl<T> Semigroup<Add> for VVec<T> {}
+
+impl<T> Monoid<Add> for VVec<T> {
+    // implement identity()
+}
 
 
+impl<T> FunctorTypes for VVec<T> {
+    // impl type
+}
 
 impl<T> Functor for VVec<T> {}
 
