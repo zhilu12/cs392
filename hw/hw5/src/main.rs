@@ -81,18 +81,35 @@ impl<'a> Iterator for Lexer<'a> {
 
 
             // matching for the chars in line
-
+            // possibly reusable for parts
             let mut chars = self.curr_line.chars();
             for c in chars {
                 match c {
                     // case for left paren
                     '(' => {
-
+                        let token = Token { 
+                            lexeme: Lexeme::Lparen,
+                            metadata: Metadata{
+                                line_num: self.curr_line_num,
+                                col_num: self.curr_col_num,
+                            },
+                        };
+                        self.curr_col_num += 1;
+                        return Some(token);
                     }
 
                     // case for right paren
                     ')' => {
-                        
+                        let token = Token {
+                            lexeme: Lexeme::Rparen,
+                            metadata: Metadata {
+                                line_num: self.curr_line_num,
+                                col_num: self.curr_col_num,
+                            },
+                        };
+
+                        self.curr_col_num += 1;
+                        return Some(token);
                     }
 
                     // case for whitespace
