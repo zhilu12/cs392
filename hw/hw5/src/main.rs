@@ -69,14 +69,21 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Token> {
         // go through each line of contents and tokenize based on rules
+        loop {
+            // Going through each line
+       
+            // using line_col_num and len of line to keep track of curr_line
+            if self.curr_col_num > self.curr_line.len() {
+                self.curr_line_num += 1;
+                self.curr_col_num = 1;
+                self.curr_line = self.contents.next();
+            }
 
-        // keep track of line and col number
+            // Logic for processing all chars in the current line:
+            // Starts at the current col_num being processed
+            let mut chars = self.curr_line[self.curr_col_num..].chars();
 
-        // Going through each line
-        while let Some(line) = self.contents.next() {
-            self.curr_line_num += 1;
-            self.curr_col_num = 1;
-            self.curr_line = line;
+
 
 
 
@@ -120,9 +127,41 @@ impl<'a> Iterator for Lexer<'a> {
 
                     // case for atom
                     _ => {
-                        
+                        let mut atom = String::new();
+                        let start_col_num = self.curr_col_num;
+
+                        // add each char to atom and build it
+
+                        // returns the complete atom after detecting a whitespace or paren
+                        // maybe an inner loop inside this case to complete the atom first
+                        // then return whole atom
+                        atom.push(c);
+
+
+                        // go onto the next char inside the inner loop
+                        next_char = chars.next();
+
+
+                        // loop going through char still needs to be made
+                        todo!  
+                        while (next_char is not(whitespace, lparen, or rparen)) {
+                            // add it to atom
+                            // increment col space num
+                            // or add the len of atom to the curr_col_num after the loop
+                            // other solution to use a start_col num value as the col_num being returned
+                        }
+
+                        // returning the atom
+                        return Some(Token {
+                            lexeme: Lexeme::Atom(atom),
+                            metadata: Metadata {
+                                line_num = self.curr_line_num;
+                                col_num = start_col_num;
+                            }
+                        });
                     }
                 }
+                self.curr_col_num += 1;
             }
         }
     }
