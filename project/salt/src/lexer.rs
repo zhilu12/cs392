@@ -1,0 +1,17 @@
+pub enum Token {
+    Lparen,
+    Rparen,
+    Lbracket,
+    Rbracket,
+    Eq,
+    Ampersand,
+    Star,
+    Comma,
+    Semicolon,
+    Fn,
+    Let,
+    Mut,
+    Box,
+    Int(i32),
+    Var(String),
+}
