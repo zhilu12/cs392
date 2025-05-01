@@ -36,6 +36,16 @@ pub enum Expr {
     Block(Vec<Stmt>, Box<Expr>, Lifetime),
 }
 
+impl Expr {
+    pub fn boxx(inner: Expr) -> Expr {
+        Expr::Box(Box::new(inner))
+    }
+
+    pub fn block(stmts: Vec<Stmt>, final_expr: Expr, lifetime: Lifetime) -> Expr {
+        Expr::Block(stmts, Box::new(final_expr), lifetime)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     Assign(Lval, Expr),
