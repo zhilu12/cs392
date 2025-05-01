@@ -31,6 +31,13 @@ pub struct Slot {
     pub lifetime: Lifetime,
 }
 
+impl Slot {
+    /// Tests expect `Slot::new(ty, lt)`
+    pub fn new(tipe: Type, lifetime: Lifetime) -> Self {
+        Slot { tipe, lifetime }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Env(pub HashMap<Ident, Slot>);
 
@@ -67,10 +74,15 @@ impl Env {
             .clone();
         for _ in 0..lval.derefs {
             slot = match slot.tipe {
-                Type::Box(inner) => Slot {
-                    tipe: *inner,
-                    lifetime: slot.lifetime,
-                },
+                Type::Box(inner) => {
+                    if let Type::Undefined(_) = *inner {
+                        return Err(Error::MovedOut(lval.clone()));
+                    }
+                    Slot {
+                        tipe: *inner,
+                        lifetime: slot.lifetime,
+                    }
+                }
                 Type::Ref(ref inner, _) => self.type_lval(inner)?,
                 other => return Err(Error::CannotDeref(other)),
             };
@@ -78,12 +90,37 @@ impl Env {
         Ok(slot)
     }
 
+    pub fn contained(&self, var: &str) -> Option<&Type> {
+        self.0.get(var).and_then(|slot| {
+            let mut t = &slot.tipe;
+            while let Type::Box(inner) = t {
+                t = inner.as_ref();
+            }
+            match t {
+                Type::Undefined(_) => None,
+                _ => Some(t),
+            }
+        })
+    }
+
+    pub fn read_prohibited(&self, lval: &Lval) -> bool {
+        self.type_lval(lval)
+            .map(|slot| matches!(slot.tipe, Type::Undefined(_)))
+            .unwrap_or(true)
+    }
+
+    pub fn write_prohibited(&self, lval: &Lval) -> bool {
+        self.type_lval(lval)
+            .map(|slot| matches!(slot.tipe, Type::Ref(_, false) | Type::Undefined(_)))
+            .unwrap_or(true)
+    }
+
     pub fn moove(&mut self, lval: &Lval) -> TypeResult<()> {
         let mut slot = self
             .0
             .get_mut(&lval.ident)
             .ok_or_else(|| Error::UnknownVar(lval.ident.clone()))?;
-        let mut t = &mut slot.tipe;
+        let mut t: &mut Type = &mut slot.tipe;
         for _ in 0..lval.derefs {
             match t {
                 Type::Box(inner) => t = inner.as_mut(),
@@ -108,7 +145,7 @@ impl Env {
                 match t {
                     Type::Box(inner) => {
                         t = *inner;
-                        rem -= 1
+                        rem -= 1;
                     }
                     Type::Ref(inner, is_mut) => {
                         if !is_mut {
@@ -156,57 +193,71 @@ impl Env {
 
     pub fn write(&mut self, lval: &Lval, new_t: Type) -> TypeResult<()> {
         use Error::*;
+
+        // 1) forbid assignment if there’s an outstanding borrow on the base ident
         for slot in self.0.values() {
-            if let Type::Ref(target, _) = &slot.tipe {
-                if target == lval {
+            if let Type::Ref(ref tgt, _) = slot.tipe {
+                if tgt.ident == lval.ident {
                     return Err(AssignAfterBorrow(lval.clone()));
                 }
             }
         }
-        if lval.derefs > 0 {
-            let ty = self
-                .0
-                .get(&lval.ident)
-                .ok_or_else(|| UnknownVar(lval.ident.clone()))?
-                .tipe
-                .clone();
-            match ty {
-                Type::Box(_) => {
-                    let mut s = lval.clone();
-                    s.derefs -= 1;
-                    return self.write(&s, new_t);
-                }
-                Type::Ref(inner, true) => return self.write(&inner, new_t),
-                _ => return Err(UpdateBehindImmRef(lval.clone())),
+
+        // 2) flatten any &mut chains into `flat`
+        let mut flat = lval.clone();
+        while let Some(sr) = self.0.get(&flat.ident) {
+            if let Type::Ref(inner, true) = &sr.tipe {
+                flat.ident = inner.ident.clone();
+                flat.derefs = inner.derefs + (flat.derefs - 1);
+            } else {
+                break;
             }
         }
-        {
-            let ty = self
+
+        // 3) immutably borrow once to extract `old_t`
+        let old_t = {
+            let sr = self
                 .0
-                .get(&lval.ident)
-                .ok_or_else(|| UnknownVar(lval.ident.clone()))?
-                .tipe
-                .clone();
-            if let Type::Ref(_, false) = ty {
-                return Err(UpdateBehindImmRef(lval.clone()));
+                .get(&flat.ident)
+                .ok_or_else(|| UnknownVar(flat.ident.clone()))?;
+            let mut t = sr.tipe.clone();
+            for _ in 0..flat.derefs {
+                t = match t {
+                    Type::Box(inner) => *inner,
+                    _ => return Err(UpdateBehindImmRef(lval.clone())),
+                };
+            }
+            t
+        };
+
+        // 4) forbid writing through an immutable ref
+        if let Type::Ref(_, false) = old_t {
+            return Err(UpdateBehindImmRef(lval.clone()));
+        }
+        // 5) compatibility check
+        if !self.compatible(&old_t, &new_t) {
+            return Err(IncompatibleTypes(old_t.clone(), new_t.clone()));
+        }
+
+        // 6) now mutably borrow and apply the write
+        let slot_entry = self
+            .0
+            .get_mut(&flat.ident)
+            .ok_or_else(|| UnknownVar(flat.ident.clone()))?;
+        let mut t_ptr: &mut Type = &mut slot_entry.tipe;
+        for _ in 0..flat.derefs {
+            if let Type::Box(inner) = t_ptr {
+                t_ptr = inner.as_mut();
+            } else {
+                unreachable!();
             }
         }
-        let old = self.0.get(&lval.ident).unwrap().tipe.clone();
-        if !self.compatible(&old, &new_t) {
-            return Err(IncompatibleTypes(old, new_t));
-        }
-        self.0.get_mut(&lval.ident).unwrap().tipe = new_t;
+        *t_ptr = new_t;
         Ok(())
     }
 
     pub fn drop(&mut self, l: Lifetime) {
         self.0.retain(|_, slot| slot.lifetime != l);
-    }
-}
-
-impl Slot {
-    pub fn new(tipe: Type, lifetime: Lifetime) -> Self {
-        Slot { tipe, lifetime }
     }
 }
 
@@ -245,19 +296,25 @@ impl Context {
             Unit => Ok(Type::Unit),
             Lval(lv, _) => {
                 let slot = self.env.type_lval(lv)?;
-                if matches!(slot.tipe, Type::Undefined(_)) {
+                // detect moved-out
+                fn has_undef(ty: &Type) -> bool {
+                    match ty {
+                        Type::Undefined(_) => true,
+                        Type::Box(inner) => has_undef(inner),
+                        _ => false,
+                    }
+                }
+                if has_undef(&slot.tipe) {
                     return Err(Error::MovedOut(lv.clone()));
                 }
                 let is_copy = matches!(slot.tipe, Type::Int | Type::Unit);
                 for other in self.env.0.values() {
-                    if let Type::Ref(ref tgt, mutbl) = other.tipe {
-                        if tgt == lv {
-                            if !mutbl && !is_copy {
-                                return Err(Error::MoveAfterBorrow(lv.clone()));
-                            }
-                            if mutbl && is_copy {
-                                return Err(Error::CopyAfterMutBorrow(lv.clone()));
-                            }
+                    if let Type::Ref(_, mutbl) = &other.tipe {
+                        if *mutbl && is_copy {
+                            return Err(Error::CopyAfterMutBorrow(lv.clone()));
+                        }
+                        if !*mutbl && !is_copy {
+                            return Err(Error::MoveAfterBorrow(lv.clone()));
                         }
                     }
                 }
@@ -271,24 +328,31 @@ impl Context {
             }
             Box(inner) => Ok(Type::boxx(self.type_expr(inner)?)),
             Borrow(lv, is_mut) => {
-                if self.env.read_prohibited(lv) {
+                let slot = self.env.type_lval(lv)?;
+                if let Type::Undefined(_) = slot.tipe {
                     return Err(Error::MovedOut(lv.clone()));
+                }
+                if let Some(block_lt) = self.lifetime_stack.last() {
+                    // use clone(), Lifetime isn’t Copy
+                    if !self.lifetime_contains(slot.lifetime.clone(), block_lt.clone()) {
+                        return Err(Error::LifetimeTooShort(Expr::Borrow(lv.clone(), *is_mut)));
+                    }
                 }
                 if *is_mut {
                     if !self.env.muut(lv) {
                         return Err(Error::MutBorrowBehindImmRef(lv.clone()));
                     }
                     for other in self.env.0.values() {
-                        if let Type::Ref(ref tgt, false) = other.tipe {
-                            if tgt == lv {
+                        if let Type::Ref(ref tgt, false) = &other.tipe {
+                            if tgt.ident == lv.ident {
                                 return Err(Error::MutBorrowAfterBorrow(lv.clone()));
                             }
                         }
                     }
                 } else {
                     for other in self.env.0.values() {
-                        if let Type::Ref(ref tgt, true) = other.tipe {
-                            if tgt == lv {
+                        if let Type::Ref(ref tgt, true) = &other.tipe {
+                            if tgt.ident == lv.ident {
                                 return Err(Error::BorrowAfterMutBorrow(lv.clone()));
                             }
                         }
@@ -310,26 +374,27 @@ impl Context {
     }
 
     pub fn type_stmt(&mut self, stmt: &mut Stmt) -> TypeResult<()> {
-        use Stmt::*;
         match stmt {
-            LetMut(var, rhs) => {
+            Stmt::LetMut(var, rhs) => {
                 if self.env.0.contains_key(var) {
                     return Err(Error::Shadowing(var.clone()));
                 }
                 let rhs_ty = self.type_expr(rhs)?;
+                // detect moved-out initialiser
                 if let Type::Undefined(_) = rhs_ty {
-                    if let crate::utils::Expr::Lval(ref lv, _) = *rhs {
+                    if let Expr::Lval(ref lv, _) = *rhs {
                         return Err(Error::MovedOut(lv.clone()));
                     }
                 }
                 self.env.insert(var, rhs_ty, self.fresh_lifetime());
                 Ok(())
             }
-            Assign(lv, e) => {
-                self.env.write(lv, self.type_expr(e)?)?;
+            Stmt::Assign(lv, e) => {
+                let rhs_ty = self.type_expr(e)?;
+                self.env.write(lv, rhs_ty)?;
                 Ok(())
             }
-            Expr(e) => {
+            Stmt::Expr(e) => {
                 let _ = self.type_expr(e)?;
                 Ok(())
             }
